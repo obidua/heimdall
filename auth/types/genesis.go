@@ -14,6 +14,11 @@ import (
 type GenesisState struct {
 	Params   Params          `json:"params" yaml:"params"`
 	Accounts GenesisAccounts `json:"accounts" yaml:"accounts"`
+
+	// Exported states opt in to restoring signing metadata. Fresh genesis keeps
+	// allocating account numbers as before. The counter may contain gaps.
+	PreserveAccountNumbers bool    `json:"preserve_account_numbers,omitempty" yaml:"preserve_account_numbers,omitempty"`
+	NextAccountNumber      *uint64 `json:"next_account_number,omitempty" yaml:"next_account_number,omitempty"`
 }
 
 // NewGenesisState - Create a new genesis state
@@ -57,7 +62,29 @@ func ValidateGenesis(data GenesisState) error {
 		return err
 	}
 
-	return ValidateGenAccounts(data.Accounts)
+	if err := ValidateGenAccounts(data.Accounts); err != nil {
+		return err
+	}
+	if !data.PreserveAccountNumbers {
+		if data.NextAccountNumber != nil {
+			return fmt.Errorf("next account number requires preserve_account_numbers")
+		}
+		return nil
+	}
+	if data.NextAccountNumber == nil {
+		return fmt.Errorf("preserved auth genesis requires next account number")
+	}
+	numbers := make(map[uint64]bool, len(data.Accounts))
+	for _, account := range data.Accounts {
+		if numbers[account.AccountNumber] {
+			return fmt.Errorf("duplicate account number in preserved auth genesis: %d", account.AccountNumber)
+		}
+		if account.AccountNumber >= *data.NextAccountNumber {
+			return fmt.Errorf("next account number must exceed all restored account numbers")
+		}
+		numbers[account.AccountNumber] = true
+	}
+	return nil
 }
 
 // SanitizeGenesisAccounts sorts accounts and coin sets.

@@ -165,8 +165,8 @@ func (ak AccountKeeper) GetSequence(ctx sdk.Context, addr hmTypes.HeimdallAddres
 	return acc.GetSequence(), nil
 }
 
-// GetNextAccountNumber Returns and increments the global account number counter
-func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
+// PeekNextAccountNumber reads the allocation counter without changing state.
+func (ak AccountKeeper) PeekNextAccountNumber(ctx sdk.Context) uint64 {
 	var accNumber uint64
 
 	store := ctx.KVStore(ak.key)
@@ -181,10 +181,19 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 		}
 	}
 
-	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
-	store.Set(types.GlobalAccountNumberKey, bz)
-
 	return accNumber
+}
+
+// GetNextAccountNumber returns and increments the global account number counter.
+func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
+	accNumber := ak.PeekNextAccountNumber(ctx)
+	ak.setNextAccountNumber(ctx, accNumber+1)
+	return accNumber
+}
+
+func (ak AccountKeeper) setNextAccountNumber(ctx sdk.Context, next uint64) {
+	store := ctx.KVStore(ak.key)
+	store.Set(types.GlobalAccountNumberKey, ak.cdc.MustMarshalBinaryLengthPrefixed(next))
 }
 
 //

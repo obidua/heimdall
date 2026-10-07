@@ -8,6 +8,19 @@ import (
 
 // InitGenesis - Init store state from genesis data
 func InitGenesis(ctx sdk.Context, ak AccountKeeper, processors []authTypes.AccountProcessor, data authTypes.GenesisState) {
+	if data.PreserveAccountNumbers {
+		if err := authTypes.ValidateGenesis(data); err != nil {
+			panic(err)
+		}
+		// Construction may already have created a module account. A complete
+		// exported state must include it before resetting the allocation counter.
+		ak.IterateAccounts(ctx, func(existing authTypes.Account) bool {
+			if !data.Accounts.Contains(existing.GetAddress()) {
+				panic("preserved auth genesis omits a preinitialized account")
+			}
+			return false
+		})
+	}
 	ak.SetParams(ctx, data.Params)
 	data.Accounts = authTypes.SanitizeGenesisAccounts(data.Accounts)
 
@@ -22,8 +35,13 @@ func InitGenesis(ctx sdk.Context, ak AccountKeeper, processors []authTypes.Accou
 			acc = p(&gacc, d) //nolint
 		}
 
-		acc = ak.NewAccount(ctx, acc)
+		if !data.PreserveAccountNumbers {
+			acc = ak.NewAccount(ctx, acc)
+		}
 		ak.SetAccount(ctx, acc)
+	}
+	if data.PreserveAccountNumbers {
+		ak.setNextAccountNumber(ctx, *data.NextAccountNumber)
 	}
 }
 
@@ -42,5 +60,9 @@ func ExportGenesis(ctx sdk.Context, ak AccountKeeper) authTypes.GenesisState {
 		return false
 	})
 
-	return authTypes.NewGenesisState(params, genAccounts)
+	result := authTypes.NewGenesisState(params, genAccounts)
+	next := ak.PeekNextAccountNumber(ctx)
+	result.PreserveAccountNumbers = true
+	result.NextAccountNumber = &next
+	return result
 }
