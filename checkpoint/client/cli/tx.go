@@ -40,6 +40,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 			SendCheckpointACKTx(cdc),
 			SendCheckpointNoACKTx(cdc),
 			SendCheckpointAdjust(cdc),
+			SendCheckpointRecovery(cdc),
 		)...,
 	)
 

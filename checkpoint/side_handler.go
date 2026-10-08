@@ -20,6 +20,8 @@ func NewSideTxHandler(k Keeper, contractCaller helper.IContractCaller) hmTypes.S
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 		switch msg := msg.(type) {
+		case types.MsgCheckpointRecovery:
+			return SideHandleMsgCheckpointRecovery(ctx, k, msg, contractCaller)
 		case types.MsgCheckpointAdjust:
 			return SideHandleMsgCheckpointAdjust(ctx, k, msg, contractCaller)
 		case types.MsgCheckpoint:
@@ -189,6 +191,8 @@ func NewPostTxHandler(k Keeper, contractCaller helper.IContractCaller) hmTypes.P
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 		switch msg := msg.(type) {
+		case types.MsgCheckpointRecovery:
+			return PostHandleMsgCheckpointRecovery(ctx, k, msg, sideTxResult)
 		case types.MsgCheckpointAdjust:
 			return PostHandleMsgCheckpointAdjust(ctx, k, msg, sideTxResult, contractCaller)
 		case types.MsgCheckpoint:

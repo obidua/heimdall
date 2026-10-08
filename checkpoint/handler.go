@@ -19,6 +19,8 @@ func NewHandler(k Keeper, contractCaller helper.IContractCaller) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		switch msg := msg.(type) {
+		case types.MsgCheckpointRecovery:
+			return handleMsgCheckpointRecovery(ctx, k, msg)
 		case types.MsgCheckpointAdjust:
 			return handleMsgCheckpointAdjust(ctx, msg, k, contractCaller)
 		case types.MsgCheckpoint:

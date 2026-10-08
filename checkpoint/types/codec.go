@@ -5,6 +5,7 @@ import (
 )
 
 func RegisterCodec(cdc *codec.Codec) {
+	cdc.RegisterConcrete(MsgCheckpointRecovery{}, "checkpoint/MsgCheckpointRecovery", nil)
 	cdc.RegisterConcrete(MsgCheckpoint{}, "checkpoint/MsgCheckpoint", nil)
 	cdc.RegisterConcrete(MsgCheckpointAck{}, "checkpoint/MsgCheckpointACK", nil)
 	cdc.RegisterConcrete(MsgCheckpointNoAck{}, "checkpoint/MsgCheckpointNoACK", nil)
