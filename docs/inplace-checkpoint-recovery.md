@@ -38,7 +38,9 @@ compared byte for byte. This does not simulate native consensus on the original 
 
 A separate three-validator synthetic consensus rehearsal committed this message,
 retained the previous checkpoint/milestone, and produced matching block/app hashes
-on all participants. Those synthetic identities and genesis are not production state.
+on all participants. A subsequent ordinary signed parent checkpoint and native
+ACK also committed after conditional governance epoch reconciliation. Those
+synthetic identities and genesis are not production state.
 
 ## Production gates still open
 
@@ -46,9 +48,11 @@ on all participants. Those synthetic identities and genesis are not production s
   not production signing access.
 - Owner anchors bypass normal StakeManager epoch advancement; the epoch/timeline
   invariant needs a separately validated governance operation.
-- Nonmonotonic checkpoint ranges require bridge proof routing review. Retaining
-  old headers alone does not prevent the same burn being presented under distinct
-  checkpoint creation times/exit IDs.
+- Nonmonotonic checkpoint ranges require segmented bridge proof routing. The
+  deployed WithdrawManager regular-exit queue rejects repeated low-128-bit exit
+  identities even when checkpoint timestamps differ (`KNOWN_EXIT`, tested on an
+  isolated fork through the authorized-predicate boundary). Receipt inclusion,
+  nonregular exits and full withdrawal execution are separate validation gates.
 - Native Bor sealing/state-sync and a complete bridge withdrawal round trip remain
   unverified. Recovery journals also require explicit support in any future genesis
   migration that must preserve them.
