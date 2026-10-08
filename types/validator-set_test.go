@@ -53,3 +53,43 @@ func TestUpdateChanges(t *testing.T) {
 		t.Errorf("expected: %v, but got %v", v2.Signer, vset1.GetProposer().Signer)
 	}
 }
+
+// A signer rotation must keep the selected validator without retaining the
+// removed public identity or advancing proposer priority a second time.
+func TestSignerRotationPreservesSelectedProposer(t *testing.T) {
+	old := &Validator{ID: 12, VotingPower: 10, Signer: HexToHeimdallAddress("0000000000000000000000000000000000000012")}
+	other := &Validator{ID: 1, VotingPower: 9, Signer: HexToHeimdallAddress("0000000000000000000000000000000000000001")}
+	set := NewValidatorSet([]*Validator{old, other})
+	set.Proposer = old.Copy()
+	removed := old.Copy()
+	removed.VotingPower = 0
+	updated := old.Copy()
+	updated.Signer = HexToHeimdallAddress("0000000000000000000000000000000000000024")
+	updated.Nonce = 3
+	if err := set.UpdateWithChangeSet([]*Validator{removed, updated}); err != nil {
+		t.Fatal(err)
+	}
+	proposer := set.GetProposer()
+	if proposer.ID != old.ID || !proposer.Signer.Equals(updated.Signer) || proposer.Nonce != updated.Nonce {
+		t.Fatalf("selected proposer retains removed identity: %+v", proposer)
+	}
+	_, member := set.GetByAddress(updated.Signer.Bytes())
+	if member == nil || proposer.ProposerPriority != member.ProposerPriority {
+		t.Fatal("proposer priority must come from updated member")
+	}
+}
+
+func TestRemovedProposerCannotRemainOutsideValidatorSet(t *testing.T) {
+	old := &Validator{ID: 12, VotingPower: 10, Signer: HexToHeimdallAddress("0000000000000000000000000000000000000012")}
+	other := &Validator{ID: 1, VotingPower: 9, Signer: HexToHeimdallAddress("0000000000000000000000000000000000000001")}
+	set := NewValidatorSet([]*Validator{old, other})
+	set.Proposer = old.Copy()
+	removed := old.Copy()
+	removed.VotingPower = 0
+	if err := set.UpdateWithChangeSet([]*Validator{removed}); err != nil {
+		t.Fatal(err)
+	}
+	if !set.GetProposer().Signer.Equals(other.Signer) {
+		t.Fatal("removed validator remains proposer")
+	}
+}

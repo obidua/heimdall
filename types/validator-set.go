@@ -602,6 +602,27 @@ func (vals *ValidatorSet) updateWithChangeSet(changes []*Validator, allowDeletes
 	vals.RescalePriorities(PriorityWindowSizeFactor * vals.TotalVotingPower())
 	vals.shiftByAvgProposerPriority()
 
+	// Changes replace validator objects. Refresh the cached selected proposer
+	// without advancing priority: its signer may have rotated or been removed.
+	if vals.Proposer != nil {
+		selected := vals.Proposer
+		vals.Proposer = nil
+		for _, validator := range vals.Validators {
+			if validator.Signer.Equals(selected.Signer) {
+				vals.Proposer = validator
+				break
+			}
+		}
+		if vals.Proposer == nil {
+			for _, validator := range vals.Validators {
+				if validator.ID == selected.ID {
+					vals.Proposer = validator
+					break
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
